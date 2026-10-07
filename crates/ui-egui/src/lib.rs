@@ -27,6 +27,8 @@ pub mod brush_preview;
 pub mod brush_resize;
 pub mod brush_sections;
 pub mod brushes_tab;
+mod camera_raw_detail_ui;
+mod camera_raw_preview_ui;
 mod camera_raw_scope_ui;
 pub mod camera_raw_ui;
 pub mod canvas;
@@ -960,7 +962,7 @@ impl eframe::App for PhotocraftApp {
             self.checker = None;
         }
         self.drain_control(ctx);
-        if self.ui.text_edit.is_some() && self.ui.tool != state::Tool::Type {
+        if self.ui.text_edit.is_some() && !self.ui.tool.is_type() {
             type_tool::commit(self);
         }
         if self.ui.pen.is_some() && self.ui.tool != state::Tool::Pen {
