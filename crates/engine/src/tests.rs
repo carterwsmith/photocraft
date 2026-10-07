@@ -626,3 +626,23 @@ fn advanced_blending_channels() {
     s.execute("edit.undo", json!({})).unwrap();
     assert_eq!(s.active().unwrap().doc.layer(LayerId(id)).unwrap().excluded_channels, 0);
 }
+
+#[test]
+fn move_document_reorders_tabs_and_keeps_the_active_one() {
+    let mut s = Session::new();
+    for name in ["a", "b", "c"] {
+        s.execute("file.new", json!({"width": 4, "height": 4, "name": name})).unwrap();
+    }
+    let names = |s: &Session| s.documents().iter().map(|d| d.doc.name.clone()).collect::<Vec<_>>();
+    let first = names(&s);
+    s.set_active(0);
+    assert_eq!(s.move_document(2, 0), Some(0));
+    assert_eq!(names(&s), [first[2].clone(), first[0].clone(), first[1].clone()]);
+    assert_eq!(s.active_index(), Some(1), "the active document follows its tab");
+    // `to` past the end moves to the last tab; `from` out of range does nothing.
+    assert_eq!(s.move_document(0, 99), Some(2));
+    assert_eq!(names(&s), first);
+    assert_eq!(s.move_document(3, 0), None);
+    assert_eq!(names(&s), first);
+    assert_eq!(s.active_index(), Some(0));
+}
