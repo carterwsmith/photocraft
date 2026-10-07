@@ -531,7 +531,7 @@ mod tests {
         assert_eq!(hex([app.session.tools.background[0], app.session.tools.background[1], app.session.tools.background[2]]), "#3366cc");
     }
 
-    fn color(app: &PhotocraftApp, id: u64) -> &str {
+    fn dialog_color(app: &PhotocraftApp, id: u64) -> &str {
         app.ui.dialogs.iter().find(|d| d.id == id).and_then(|d| d.fields.get("color")).and_then(Value::as_str).unwrap()
     }
 
@@ -544,12 +544,12 @@ mod tests {
         let id = open(&mut app, "foreground");
         assert_eq!(top(&app), Some(id));
         sample_at(&mut app, 25.5, 5.5);
-        assert_eq!(color(&app, id), "#00ff00");
+        assert_eq!(dialog_color(&app, id), "#00ff00");
         assert_eq!(app.ui.dialog_mut(id).unwrap().fields["__orig"], json!("#000000"), "the current colour stays");
         // Off the image or over transparency nothing changes.
         for (x, y) in [(35.0, 5.0), (-3.0, 5.0), (5.0, 20.0), (1e12, -1e12), (f64::NAN, f64::INFINITY)] {
             sample_at(&mut app, x, y);
-            assert_eq!(color(&app, id), "#00ff00", "({x}, {y})");
+            assert_eq!(dialog_color(&app, id), "#00ff00", "({x}, {y})");
         }
 
         // Agents: `ui.pointer` samples into the picker instead of driving the tool.
@@ -559,7 +559,7 @@ mod tests {
         let events = json!([{"kind": "down", "x": 5, "y": 5}, {"kind": "up", "x": 5, "y": 5}]);
         let (req, _rx) = crate::control::ControlRequest::new("ui.pointer", json!({"events": events}));
         let _ = crate::control::handle(&mut app, &ctx, &req);
-        assert_eq!(color(&app, id), "#ff0000");
+        assert_eq!(dialog_color(&app, id), "#ff0000");
         assert_eq!(app.session.active().unwrap().revision, rev, "the Brush must not paint");
         assert_eq!(app.session.tools.foreground, [0.0, 0.0, 0.0, 1.0], "only OK sets the foreground");
 
@@ -567,9 +567,9 @@ mod tests {
         let about = app.ui.open_dialog(DialogKind::About, Map::new());
         assert_eq!(top(&app), None);
         sample_at(&mut app, 25.0, 5.0);
-        assert_eq!(color(&app, id), "#ff0000");
+        assert_eq!(dialog_color(&app, id), "#ff0000");
         app.ui.close_dialog(about);
         sample_at(&mut app, 25.0, 5.0);
-        assert_eq!(color(&app, id), "#00ff00");
+        assert_eq!(dialog_color(&app, id), "#00ff00");
     }
 }
