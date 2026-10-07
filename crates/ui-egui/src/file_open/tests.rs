@@ -314,8 +314,8 @@ fn history_steps(app: &PhotocraftApp) -> usize {
     app.session.active().unwrap().history.past_len()
 }
 
-/// Like Photoshop: files dropped on the canvas are placed one at a time, each in Free Transform;
-/// the next is placed once the previous transform is committed or cancelled.
+/// As in the reference app, files dropped on the canvas are placed one at a time, each in Free
+/// Transform; the next is placed once the previous transform is committed or cancelled.
 #[test]
 fn files_dropped_onto_the_canvas_are_placed_in_free_transform_one_by_one() {
     let dir = std::env::temp_dir().join(format!("photocraft-drop-place-{}", std::process::id()));

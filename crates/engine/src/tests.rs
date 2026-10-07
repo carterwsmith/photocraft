@@ -643,6 +643,9 @@ fn move_document_reorders_tabs_and_keeps_the_active_one() {
     assert_eq!(s.move_document(0, 99), Some(2));
     assert_eq!(names(&s), first);
     assert_eq!(s.move_document(3, 0), None);
+    let mut v = vec![1, 2];
+    assert_eq!(move_item(&mut v, 2, 0), None, "out of range: no panic, nothing moves");
+    assert_eq!(v, [1, 2]);
     assert_eq!(names(&s), first);
     assert_eq!(s.active_index(), Some(0));
 }

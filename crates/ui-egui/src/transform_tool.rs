@@ -212,8 +212,8 @@ pub fn begin_copy(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<(), St
     Ok(())
 }
 
-/// Free Transform on the layer a file dropped on the canvas just placed, like Photoshop's Place:
-/// Esc takes the place back, ↩ makes the place and the transform one Place Embedded step.
+/// Free Transform on the layer a file dropped on the canvas just placed, like the reference app's
+/// Place: Esc takes the place back, ↩ makes the place and the transform one Place Embedded step.
 pub fn begin_placed(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<(), String> {
     begin(app, ctx)?;
     if let Some(t) = app.ui.transform.as_mut() {

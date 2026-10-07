@@ -18,9 +18,9 @@ pub enum OsEvent {
     Quit,
 }
 
-/// Where files dropped on the window land, like Photoshop. winit 0.30's drops carry no position,
-/// so it comes from the OS ([`Services::cursor_pos`](crate::Services::cursor_pos)); unknown
-/// counts as elsewhere.
+/// Where files dropped on the window land, as in the reference app. winit 0.30's drops carry no
+/// position, so it comes from the OS ([`Services::cursor_pos`](crate::Services::cursor_pos));
+/// unknown counts as elsewhere.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DropTarget {
     /// The active document's canvas: placed as layers (Place Embedded), each in Free Transform.
@@ -100,12 +100,11 @@ impl PhotocraftApp {
 
     /// Show "Couldn't open <name>: <error>" as an error (status bar + notice).
     pub fn open_failed(&mut self, name: &str, err: &str) {
-        self.failed("open", name, err);
+        self.failed(format!("Couldn't open {name}: {err}"));
     }
 
-    /// Show "Couldn't <verb> <name>: <error>" as an error (status bar + notice).
-    fn failed(&mut self, verb: &str, name: &str, err: &str) {
-        let msg = format!("Couldn't {verb} {name}: {err}");
+    /// Log `msg` and show it as an error (status bar + notice).
+    fn failed(&mut self, msg: String) {
         log::warn!("{msg}");
         notices::error(self, msg);
     }
@@ -182,7 +181,7 @@ impl PhotocraftApp {
                         self.ui.status = e;
                     }
                 }
-                Err(e) => self.failed("place", &dropped_name(&f), &e),
+                Err(e) => self.failed(crate::i18n::fmt(tl!("Couldn't place {name}: {error}"), &[("name", &dropped_name(&f)), ("error", &e)])),
             }
         }
     }
