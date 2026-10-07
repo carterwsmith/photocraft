@@ -648,4 +648,13 @@ fn move_document_reorders_tabs_and_keeps_the_active_one() {
     assert_eq!(v, [1, 2]);
     assert_eq!(names(&s), first);
     assert_eq!(s.active_index(), Some(0));
+    // The command (for the UI, agents and scripts) moves the active document by default.
+    assert_eq!(s.execute("document.move", json!({"to": 2})).unwrap(), json!({"document": 2}));
+    assert_eq!(names(&s), [first[1].clone(), first[2].clone(), first[0].clone()]);
+    assert_eq!(s.execute("document.move", json!({"document": 2, "to": 0})).unwrap(), json!({"document": 0}));
+    assert_eq!(names(&s), first);
+    for bad in [json!({}), json!({"to": -1}), json!({"to": "1"}), json!({"document": 3, "to": 0}), json!({"document": 1.5, "to": 0})] {
+        assert!(s.execute("document.move", bad.clone()).is_err(), "{bad}");
+    }
+    assert_eq!(names(&s), first);
 }

@@ -87,9 +87,19 @@ mod platform {
         Some(Box::new(|ctx: &egui::Context| {
             let pt = winsafe::GetCursorPos().map_err(|e| log::warn!("couldn't read the pointer position: {e}")).ok()?;
             let inner = ctx.input(|i| i.viewport().inner_rect)?;
-            Some(egui::pos2(pt.x as f32, pt.y as f32) / ctx.pixels_per_point() - inner.min.to_vec2())
+            Some(super::client_points(egui::pos2(pt.x as f32, pt.y as f32), inner.min, ctx.pixels_per_point()))
         }))
     }
+}
+
+/// A screen position in physical pixels to points in the window whose client area starts at
+/// `inner_min` (egui's `inner_rect.min`: the client origin in pixels over `ppp`). On Windows
+/// `GetCursorPos` and the client origin are both physical pixels (winit makes the process
+/// per-monitor DPI aware) and the window draws at one scale wherever it sits, so this holds across
+/// monitors with different DPIs.
+#[cfg(any(target_os = "windows", test))]
+fn client_points(screen_px: egui::Pos2, inner_min: egui::Pos2, ppp: f32) -> egui::Pos2 {
+    ((screen_px - inner_min * ppp) / ppp).to_pos2()
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
@@ -98,5 +108,19 @@ mod platform {
 
     pub fn service(_cc: &eframe::CreationContext<'_>) -> Option<CursorPosFn> {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use egui::pos2;
+
+    #[test]
+    fn client_points_on_a_second_monitor_at_another_scale() {
+        // A 150% monitor left of a 100% primary: the window's client area starts at (-2400, 300) px.
+        let inner_min = pos2(-2400.0, 300.0) / 1.5;
+        assert_eq!(super::client_points(pos2(-2100.0, 450.0), inner_min, 1.5), pos2(200.0, 100.0));
+        // The same window on the 100% primary.
+        assert_eq!(super::client_points(pos2(500.0, 400.0), pos2(300.0, 300.0), 1.0), pos2(200.0, 100.0));
     }
 }

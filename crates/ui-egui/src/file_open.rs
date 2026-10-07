@@ -162,7 +162,7 @@ impl PhotocraftApp {
             tab.slot = Some(slot);
             return Ok(true);
         }
-        Ok(self.move_document(docs, slot).is_some())
+        Ok(self.run("document.move", serde_json::json!({"document": docs, "to": slot})).is_ok())
     }
 
     /// Place the next file dropped on the canvas and start Free Transform on it, once no other

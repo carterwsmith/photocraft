@@ -338,6 +338,8 @@ pub struct PhotocraftApp {
     pub(crate) tab_strip: Option<canvas::TabStrip>,
     /// Files dropped on the canvas still to place, one Free Transform at a time.
     pub(crate) drop_places: std::collections::VecDeque<egui::DroppedFileHandle>,
+    /// The document each of `ui.views` belongs to, as of the last [`Self::sync_views`].
+    view_docs: Vec<DocId>,
     pub fps: f32,
     last_frame_time: f64,
     thumbs: HashMap<(photocraft_doc::LayerId, u8), (u64, egui::TextureHandle)>,
@@ -465,6 +467,7 @@ impl PhotocraftApp {
             drop_canvas_rect: None,
             tab_strip: None,
             drop_places: Default::default(),
+            view_docs: Vec::new(),
             fps: 0.0,
             last_frame_time: 0.0,
             thumbs: HashMap::new(),
@@ -641,29 +644,25 @@ impl PhotocraftApp {
         r
     }
 
-    /// Move the document at `from` to tab position `to`, with its view and windows. Returns its
-    /// new index; `None` when `from` is out of range.
-    pub fn move_document(&mut self, from: usize, to: usize) -> Option<usize> {
-        self.sync_views();
-        let to = self.session.move_document(from, to)?;
-        photocraft_engine::move_item(&mut self.ui.views, from, to);
-        for w in &mut self.ui.windows {
-            w.document = match w.document {
-                d if d == from => to,
-                d if from < d && d <= to => d - 1,
-                d if to <= d && d < from => d + 1,
-                d => d,
-            };
-        }
-        Some(to)
-    }
-
-    /// Keep one view per document.
+    /// Keep one view per document, in tab order: a view and its windows stay with their document
+    /// when tabs move (`document.move`) or close.
     pub fn sync_views(&mut self) {
         crate::lasso_ui::cancel_stale(self);
-        let n = self.session.documents().len();
-        self.ui.views.resize_with(n, Default::default);
-        self.ui.windows.retain(|w| w.document < n);
+        let ids: Vec<DocId> = self.session.documents().iter().map(|d| d.doc.id).collect();
+        // Where the document of view `i` is now. Views not tracked yet keep their index.
+        let now = |i: usize| match self.view_docs.get(i) {
+            Some(id) => ids.iter().position(|d| d == id),
+            None => (i < ids.len()).then_some(i),
+        };
+        let mut views: Vec<Option<state::View>> = ids.iter().map(|_| None).collect();
+        for (i, v) in std::mem::take(&mut self.ui.views).into_iter().enumerate() {
+            if let Some(slot) = now(i).and_then(|to| views.get_mut(to)) {
+                *slot = Some(v);
+            }
+        }
+        self.ui.views = views.into_iter().map(Option::unwrap_or_default).collect();
+        self.ui.windows.retain_mut(|w| now(w.document).map(|d| w.document = d).is_some());
+        self.view_docs = ids;
         self.prune_thumbs();
         self.sync_mask_targets();
         // Channel-view textures outlive a hidden view (cheap re-show), not their document.

@@ -192,8 +192,10 @@ fn on_event(app: &mut PhotocraftApp, e: JobEvent) {
 /// (`{document, warnings, color}`).
 fn finish_open(app: &mut PhotocraftApp, name: &str, path: Option<&str>, v: &Value, slot: Option<usize>) -> Result<(), String> {
     let mut index = v.get("document").and_then(Value::as_u64).ok_or("the open job returned no document")? as usize;
-    if let Some(moved) = slot.and_then(|slot| app.move_document(index, slot)) {
-        index = moved;
+    if let Some(slot) = slot
+        && let Ok(moved) = app.run("document.move", json!({"document": index, "to": slot}))
+    {
+        index = moved.get("document").and_then(Value::as_u64).map_or(index, |i| i as usize);
     }
     let warnings: Vec<String> =
         v.get("warnings").and_then(Value::as_array).map(|a| a.iter().filter_map(|w| w.as_str().map(str::to_string)).collect()).unwrap_or_default();

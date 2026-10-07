@@ -2518,3 +2518,4 @@ cameraRaw	Whites	Brancos
 	Don't show again	Não mostrar novamente
 	Save failed: {error}	Falha ao salvar: {error}
 	Save cancelled	Salvamento cancelado
+	Couldn't place {name}: {error}	Não foi possível inserir {name}: {error}

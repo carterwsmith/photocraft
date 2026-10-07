@@ -467,22 +467,29 @@ fn drag_and_drop_in_the_running_app() {
 }
 
 #[test]
-fn moving_a_document_moves_its_view_and_windows() {
+fn views_and_windows_stay_with_their_documents() {
     let (mut app, _) = app_with(None, None);
-    for name in ["a.psd", "b.psd", "c.psd"] {
+    for name in ["a.psd", "b.psd", "c.psd", "d.psd"] {
         app.open_bytes(name, b"x").unwrap();
     }
     for (i, v) in app.ui.views.iter_mut().enumerate() {
         v.zoom = i as f32 + 1.0;
     }
-    app.ui.windows = (0..3).map(|document| crate::state::DocWindow { id: document as u64, document, view: Default::default(), open: true }).collect();
-    app.move_document(0, 2);
-    assert_eq!(doc_names(&app), ["b.psd", "c.psd", "a.psd"]);
-    assert_eq!(app.ui.views.iter().map(|v| v.zoom).collect::<Vec<_>>(), [2.0, 3.0, 1.0]);
-    assert_eq!(app.ui.windows.iter().map(|w| w.document).collect::<Vec<_>>(), [2, 0, 1]);
-    // Out of range: nothing moves.
-    app.move_document(7, 0);
-    assert_eq!(app.ui.views.iter().map(|v| v.zoom).collect::<Vec<_>>(), [2.0, 3.0, 1.0]);
+    app.ui.windows = (0..4).map(|document| crate::state::DocWindow { id: document as u64, document, view: Default::default(), open: true }).collect();
+    let zooms = |app: &PhotocraftApp| app.ui.views.iter().map(|v| v.zoom).collect::<Vec<_>>();
+    let windows = |app: &PhotocraftApp| app.ui.windows.iter().map(|w| (w.id, w.document)).collect::<Vec<_>>();
+    assert_eq!(app.run("document.move", json!({"document": 0, "to": 3})).unwrap(), json!({"document": 3}));
+    assert_eq!(doc_names(&app), ["b.psd", "c.psd", "d.psd", "a.psd"]);
+    assert_eq!(zooms(&app), [2.0, 3.0, 4.0, 1.0]);
+    assert_eq!(windows(&app), [(0, 3), (1, 0), (2, 1), (3, 2)]);
+    // Out of range: an error, nothing moves.
+    assert!(app.run("document.move", json!({"document": 7, "to": 0})).is_err());
+    assert_eq!(zooms(&app), [2.0, 3.0, 4.0, 1.0]);
+    // Closing a middle tab takes its view and windows with it; the others keep theirs.
+    app.run("file.close", json!({"document": 1})).unwrap();
+    assert_eq!(doc_names(&app), ["b.psd", "d.psd", "a.psd"]);
+    assert_eq!(zooms(&app), [2.0, 4.0, 1.0]);
+    assert_eq!(windows(&app), [(0, 2), (1, 0), (3, 1)]);
 }
 
 #[test]
